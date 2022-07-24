@@ -3,12 +3,12 @@ package git
 import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/ph4r5h4d/soteria/models"
 	"github.com/ph4r5h4d/soteria/pkg/helpers"
-	"go.uber.org/zap"
 	"os"
 )
 
-func Clone(logger *zap.Logger, repository string) error {
+func Clone(logger models.LogInterface, repository string) error {
 	home, _ := os.UserHomeDir()
 	gitDir := home + "/.soteria/storage"
 	if !helpers.CheckIfSshAgentExists() {

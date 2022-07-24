@@ -2,19 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/ph4r5h4d/soteria/models"
 	"github.com/ph4r5h4d/soteria/pkg/files/filesPathParser"
+	"github.com/ph4r5h4d/soteria/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"os"
-	"strconv"
 )
 
 var cfgFile string
 
 type dependencies struct {
-	logger *zap.Logger
+	logger models.LogInterface
 }
 
 var di dependencies
@@ -78,31 +77,9 @@ func initConfig() {
 }
 
 func setupDependencies() {
-	di.logger = setupLogger()
-}
-
-func setupLogger() *zap.Logger {
-	// viper is not yet initialized, so here we only check the env. this part might need improvement.
-	isDebug := false
-	envDebug := os.Getenv("SOTERIA_DEBUG")
-	if envDebug != "" {
-		isDebug, _ = strconv.ParseBool(envDebug)
-	}
-
-	config := zap.NewDevelopmentConfig()
-	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	config.DisableCaller = true
-	config.DisableStacktrace = true
-	if !isDebug {
-		config.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	}
-	logger, err := config.Build()
-
+	l, err := logger.BuildLogger("zap")
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-	defer func(logger *zap.Logger) {
-		_ = logger.Sync()
-	}(logger)
-	return logger
+	di.logger = l
 }
