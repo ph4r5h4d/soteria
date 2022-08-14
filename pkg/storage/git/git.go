@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/ph4r5h4d/soteria/models"
@@ -8,29 +9,42 @@ import (
 	"os"
 )
 
-func Clone(logger models.LogInterface, repository string) error {
+type Git struct {
+	logger models.LogInterface
+	config models.Config
+}
+
+func (g Git) Build(config models.Config, logger models.LogInterface) (models.StorageInterface, error) {
+	g.config = config
+	g.logger = logger
+	return g, nil
+}
+
+func (g Git) Init() error {
 	home, _ := os.UserHomeDir()
 	gitDir := home + "/.soteria/storage"
 	if !helpers.CheckIfSshAgentExists() {
-		logger.Error("SSH Agent is not installed")
+		return errors.New("SSH Agent is not installed")
 	}
 
 	auth, err := setupAuth()
 	if err != nil {
-		logger.Error(err.Error())
 		return err
 	}
 
 	_, err = git.PlainClone(gitDir, false, &git.CloneOptions{
-		URL:      repository,
+		URL:      g.config.Git.Repository,
 		Progress: os.Stdout,
 		Auth:     auth,
 	})
 
 	if err != nil {
-		logger.Error(err.Error())
 		return err
 	}
+	return nil
+}
+
+func (g Git) Sync() error {
 	return nil
 }
 
