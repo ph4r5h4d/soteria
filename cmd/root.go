@@ -5,6 +5,7 @@ import (
 	"github.com/ph4r5h4d/soteria/models"
 	"github.com/ph4r5h4d/soteria/pkg/files/filesPathParser"
 	"github.com/ph4r5h4d/soteria/pkg/logger"
+	"github.com/ph4r5h4d/soteria/pkg/storage"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -13,7 +14,9 @@ import (
 var cfgFile string
 
 type dependencies struct {
-	logger models.LogInterface
+	logger  models.LogInterface
+	storage models.StorageInterface
+	config  models.Config
 }
 
 var di dependencies
@@ -37,13 +40,28 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.soteria.yaml)")
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	setupDependencies()
+}
+
+// setupDependencies do the initialization of all project dependencies
+func setupDependencies() {
+	initConfig()
+
+	l, err := logger.BuildLogger("zap")
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	di.logger = l
+
+	s, err := storage.Build("git", di.config, di.logger)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	di.storage = s
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -74,12 +92,8 @@ func initConfig() {
 	files, err := filesPathParser.ParseFilesPath(viper.GetStringSlice("files"))
 	cobra.CheckErr(err)
 	viper.Set("files", files)
-}
 
-func setupDependencies() {
-	l, err := logger.BuildLogger("zap")
-	if err != nil {
-		cobra.CheckErr(err)
-	}
-	di.logger = l
+	// config model
+	err = viper.Unmarshal(&di.config)
+	cobra.CheckErr(err)
 }
